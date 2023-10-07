@@ -27,19 +27,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
-from __future__ import absolute_import
-from future import standard_library
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
+import logging
 import optparse
+import os
+import re
 import socket
 import sys
-import re
 from builtins import *
-import logging
+
+from future import standard_library
+
 standard_library.install_aliases()
 
 logger = logging.getLogger(__name__)
@@ -115,7 +114,7 @@ class NICClient(object):
     PPUA_HOST = "whois.pp.ua"
     UKR_HOST = "whois.dotukr.com"
     TN_HOST = "whois.ati.tn"
-    
+
     WHOIS_RECURSE = 0x01
     WHOIS_QUICK = 0x02
 
@@ -363,7 +362,7 @@ class NICClient(object):
             except socket.gaierror:
                 server = NICClient.QNICHOST_HEAD + tld
             return server
-        
+
     def whois_lookup(self, options, query_arg, flags, quiet=False):
         """Main entry point: Perform initial lookup on TLD whois server,
         or other server to get region-specific whois server, then if quick
@@ -393,6 +392,8 @@ class NICClient(object):
         elif self.use_qnichost:
             nichost = self.choose_server(query_arg)
             if nichost is not None:
+                if nichost == NICClient.JP_HOST:
+                    query_arg += "/e"  # force English response from JPRS server
                 result = self.whois(query_arg, nichost, flags, quiet=quiet)
             else:
                 result = ''
@@ -405,7 +406,6 @@ def parse_command_line(argv):
     """Options handling mostly follows the UNIX whois(1) man page, except
     long-form options can also be used.
     """
-    flags = 0
 
     usage = "usage: %prog [options] name"
 
